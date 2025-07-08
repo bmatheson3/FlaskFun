@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Form</title>
+</head>
+
+
+<body>
+    <div>
+        <form 
+            id="user-info"
+            method="POST"
+            action="/user_form_submitted"
+        >
+                <label for="fname">First name:</label><br>
+                <input type="text" id="fname" name="fname"><br>
+
+                <label for="lname">Last name:</label><br>
+                <input type="text" id="lname" name="lname"><br>
+
+                <label for="company-name">Company name:</label><br>
+                <input type="text" id="company-name" name="company-name"><br>
+
+                <label for="phNumber">Phone Number:</label><br>
+                <input id="phNumber" type="tel" id="phNumber" name="phNumber"> <br><br>
+
+                <button type="submit">Submit</button>
+        </form>
+    </div>  
+</body>
+</html>

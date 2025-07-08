@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 import os
 import uuid
+import pyshorteners
+from twilio.rest import Client
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -16,16 +18,20 @@ class GenericPass:
         key_file_path: Google ADC (Application Default Credentials)
         issuer_id: Unique ID provided for using Google Wallet API
         class_id: Customisable class name for pass
-        auth(): Checks user's credentials to authorise
+        auth(): Checks user's credentials
     """
     
+    # Setting up environment
     load_dotenv()
     
     # Class initialiser
     def __init__(self):
         self.key_file_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.issuerId = os.getenv("ISSUER_ID")
-        self.classId = self.issuerId + '.flask_noAI_nfc_try'
+        self.classId = self.issuerId + '.flask_noAI_dblquotes'
+        self.twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        self.twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        self.twilio_client = Client(self.twilio_account_sid, self.twilio_auth_token)
         self.auth()
         print(self.issuerId)
         print(self.classId)
@@ -38,7 +44,7 @@ class GenericPass:
             scopes=['https://www.googleapis.com/auth/wallet_object.issuer'])
     
         # creates a Google API Client based on name, version & credentials
-        self.client = build('walletobjects', 'v1', credentials=self.credentials)
+        self.wallet_client = build('walletobjects', 'v1', credentials=self.credentials)
         
 
 
@@ -62,7 +68,7 @@ class GenericPass:
                         'firstValue': {
                             'fields': [
                             {
-                                'fieldPath': 'object.textModulesData["points"]'
+                                'fieldPath': 'object.textModulesData[\'company\']'
                             }
                             ]
                         }
@@ -71,7 +77,7 @@ class GenericPass:
                         'firstValue': {
                             'fields': [
                             {
-                                'fieldPath': 'object.textModulesData["contacts"]'
+                                'fieldPath': 'object.textModulesData[\'contact\']'
                             }
                             ]
                         }
@@ -88,17 +94,6 @@ class GenericPass:
                         'fields': [
                             {
                             'fieldPath': 'class.imageModulesData["event_banner"]'
-                            }
-                        ]
-                        }
-                    }
-                    },
-                    {
-                    'item': {
-                        'firstValue': {
-                        'fields': [
-                            {
-                            'fieldPath': 'class.textModulesData["game_overview"]'
                             }
                         ]
                         }
@@ -134,13 +129,6 @@ class GenericPass:
                 'id': 'event_banner'
                 }
             ],
-            'textModulesData': [
-                {
-                'header': 'Gather points meeting new people at Google I/O',
-                'body': 'Join the game and accumulate points in this badge by meeting other attendees in the event.',
-                'id': 'game_overview'
-                }
-            ],
             'linksModuleData': {
                 'uris': [
                 {
@@ -154,7 +142,7 @@ class GenericPass:
         
         # Check if the class already exists
         try:
-            self.client.genericclass().get(resourceId=self.classId).execute()
+            self.wallet_client.genericclass().get(resourceId=self.classId).execute()
         # If it does not, create it
         except HttpError as e:
             # Checking for any unexpected errors (we expect a 404 in the case that the class does not exist)
@@ -166,19 +154,20 @@ class GenericPass:
             return self.classId
 
         # Creating the class with the generic class json
-        self.client.genericclass().insert(body=generic_class).execute()
+        self.wallet_client.genericclass().insert(body=generic_class).execute()
         print("Created class with ID: " + self.classId)
         
         return self.classId
 
 
     # Create pass object
-    def create_pass_object(self):
+    def create_pass_object(self, firstName, lastName, companyName, phNumber):
         '''
         Method to generate a URL that allows a unique nfc pass (with a unique ID) to be added to the Google wallet
         '''
         object_suffix = str(uuid.uuid4()).replace('[^\\w.-]', '_')
         object_id = self.issuerId + "." + object_suffix
+        self.create_class()
         
         # This was taken from Google's developers tutorial (in js) and was adapted for python
         genericObject = {
@@ -207,7 +196,7 @@ class GenericPass:
             'header': {
             'defaultValue': {
                 'language': 'en',
-                'value': 'Alex McJacobs NFC'
+                'value': firstName + lastName
             }
             },
             'barcode': {
@@ -221,14 +210,15 @@ class GenericPass:
             },
             'textModulesData': [
             {
-                'header': 'POINTS',
-                'body': '1234',
-                'id': 'points'
+                'header': 'Company Name:',
+                'body': companyName,
+                'id': 'company'
             },
             {
-                'header': 'CONTACTS',
-                'body': '20',
-                'id': 'contacts'
+                'header': 'Phone Number:',
+                'body': phNumber,
+                'id': 'contact'
+
             }
             ]
         }
@@ -248,8 +238,23 @@ class GenericPass:
         signer = crypt.RSASigner.from_service_account_file(self.key_file_path)
         token = jwt.encode(signer, claims).decode('utf-8')
 
-        print('Add to Google Wallet link')
-        # long link for now, need to shorten
-        print(f'https://pay.google.com/gp/v/save/{token}')
+        # url shortener object
+        shortener = pyshorteners.Shortener()
         
-        return f'https://pay.google.com/gp/v/save/{token}'
+        origial_link = f'https://pay.google.com/gp/v/save/{token}'
+        short_url = shortener.tinyurl.short(origial_link)
+
+        print('Add to Google Wallet link')
+        print(f'Long URL: https://pay.google.com/gp/v/save/{token}')
+        print(f'Short URL: {short_url}')
+        
+        
+        message = self.twilio_client.messages.create(
+            body=f"Hi {firstName}, \nAccess your pass here: {short_url}",
+            from_="+17164527426",
+            to=f"{phNumber}",
+        )
+        
+        print(message.body)
+        
+        return short_url
