@@ -31,42 +31,22 @@
             };
         };
 
-
-        window.addEventListener("load", () => {
-            // var users = [
-            //     {
-            //         firstName: "Blake",
-            //         lastName: "Matheson",
-            //         email: "blake.matheson@convergint.com",
-            //         company: "Convergint",
-            //         phNumber: "+61409961183",
-            //     },
-            //     {
-            //         firstName: "Anna",
-            //         lastName: "Ly",
-            //         email: "anna.ly@convergint.com",
-            //         company: "Convergint",
-            //         phNumber: "+61424272123",
-            //     }
-            // ];
-
-            document.getElementById('users').innerHTML = '';
-            async function handleGetUsers(){
+         async function handleGetUsers(){
                 try{
                     const response = await fetch('/get_users', {
                         method: 'GET',
                         headers: {'Content-Type': 'application/json'},
                     });
-                    const result = await response.json()
-                    console.log(result)
-
+                    const result = await response.json();
+                    return result;
                 }catch(e){
                     console.error('Error: ', e);
                 };
             }; 
-            handleGetUsers()
 
-            var numUsers = users.length;
+        async function buildUserTable(){
+            const usersArr = await handleGetUsers()
+            var numUsers = usersArr.length;
             var table = document.createElement('table');
 
             // Create header row
@@ -84,24 +64,23 @@
                 var row = document.createElement('tr');
                 
                 var col1 = document.createElement('td');
-                col1.textContent = users[i].firstName;  
+                col1.textContent = usersArr[i][1];  
                 var col2 = document.createElement('td');
-                col2.textContent = users[i].lastName;   
+                col2.textContent = usersArr[i][2];   
                 
                 var col3 = document.createElement('td');
-                col3.textContent = users[i].company;    
+                col3.textContent = usersArr[i][3];    
                 
                 var col4 = document.createElement('td');
-                col4.textContent = users[i].email;      
+                col4.textContent = usersArr[i][4];      
                 
                 var col5 = document.createElement('td');
-                col5.textContent = users[i].phNumber;   
+                col5.textContent = usersArr[i][5];   
 
                 var col6 = document.createElement('td');
                 sendEmailButton = document.createElement('button');
                 sendEmailButton.textContent = 'Send Email';
-                console.log(users[i]);
-                const user = users[i]
+                const user = usersArr[i]
                 sendEmailButton.onclick = function() {
                     handleEmailSend(user);
                 };
@@ -109,7 +88,12 @@
                 col6.appendChild(sendEmailButton);
 
                 var col7 = document.createElement('td');
-                col7.textContent = "Not sent" // placeholder for now
+                if (usersArr[i][7] == 'false'){
+                    col7.textContent = "Not sent"
+                }
+                else{
+                    col7.textContent = "Sent"
+                }
 
                 var col8 = document.createElement('td');
                 col8.textContent = "Not sent" // placeholder for now
@@ -127,7 +111,15 @@
             }
             
             document.getElementById('users').appendChild(table);
-        });
+        }
+
+
+        window.addEventListener("load", () => {
+            document.getElementById('users').innerHTML = '';
+        
+            buildUserTable()
+
+        })
     </script>
 </body>
 </html>
