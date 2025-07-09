@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+    <h1>Users</h1>
+    <div id="users"></div>
+
+    <script>
+        async function handleEmailSend(user){
+            console.log("Clicked!")
+            console.log(user)
+            try{
+                const response = await fetch('/users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(user)
+                 
+                });
+                console.log(response);
+                // const result = await response.json();
+
+            }catch(e){
+                console.error('Error: ', e);
+            };
+        };
+
+
+        window.addEventListener("load", () => {
+            // var users = [
+            //     {
+            //         firstName: "Blake",
+            //         lastName: "Matheson",
+            //         email: "blake.matheson@convergint.com",
+            //         company: "Convergint",
+            //         phNumber: "+61409961183",
+            //     },
+            //     {
+            //         firstName: "Anna",
+            //         lastName: "Ly",
+            //         email: "anna.ly@convergint.com",
+            //         company: "Convergint",
+            //         phNumber: "+61424272123",
+            //     }
+            // ];
+
+            document.getElementById('users').innerHTML = '';
+            async function handleGetUsers(){
+                try{
+                    const response = await fetch('/get_users', {
+                        method: 'GET',
+                        headers: {'Content-Type': 'application/json'},
+                    });
+                    const result = await response.json()
+                    console.log(result)
+
+                }catch(e){
+                    console.error('Error: ', e);
+                };
+            }; 
+            handleGetUsers()
+
+            var numUsers = users.length;
+            var table = document.createElement('table');
+
+            // Create header row
+            var headerRow = document.createElement('tr');
+            var headers = ['First Name', 'Last Name', 'Company', 'Email', 'Phone', 'Welcome Email', 'SMS', 'Security Q'];
+            headers.forEach(headerText => {
+                var th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            // Create data rows
+            for (i = 0; i < numUsers; i++) {
+                var row = document.createElement('tr');
+                
+                var col1 = document.createElement('td');
+                col1.textContent = users[i].firstName;  
+                var col2 = document.createElement('td');
+                col2.textContent = users[i].lastName;   
+                
+                var col3 = document.createElement('td');
+                col3.textContent = users[i].company;    
+                
+                var col4 = document.createElement('td');
+                col4.textContent = users[i].email;      
+                
+                var col5 = document.createElement('td');
+                col5.textContent = users[i].phNumber;   
+
+                var col6 = document.createElement('td');
+                sendEmailButton = document.createElement('button');
+                sendEmailButton.textContent = 'Send Email';
+                console.log(users[i]);
+                const user = users[i]
+                sendEmailButton.onclick = function() {
+                    handleEmailSend(user);
+                };
+
+                col6.appendChild(sendEmailButton);
+
+                var col7 = document.createElement('td');
+                col7.textContent = "Not sent" // placeholder for now
+
+                var col8 = document.createElement('td');
+                col8.textContent = "Not sent" // placeholder for now
+
+                row.appendChild(col1);
+                row.appendChild(col2);
+                row.appendChild(col3);
+                row.appendChild(col4);
+                row.appendChild(col5);
+                row.appendChild(col6);
+                row.appendChild(col7);
+                row.appendChild(col8);
+
+                table.appendChild(row);
+            }
+            
+            document.getElementById('users').appendChild(table);
+        });
+    </script>
+</body>
+</html>

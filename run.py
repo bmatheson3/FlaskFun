@@ -1,11 +1,37 @@
 from flask import Flask, render_template, request
 from app.google_wallet import GenericPass
+import os
+import sqlite3
+import jsonify
+import json
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+from twilio.twiml.messaging_response import MessagingResponse
+from app.init_db import init_db
 
 
 app = Flask(__name__)
 
+init_db()
 
 generic_pass = GenericPass()
+
+# Connect to Database
+def get_db_connection():
+    connection = sqlite3.connect('database.db')
+    connection.row_factory = sqlite3.Row
+    return connection
+
+@app.route('/get_users', methods=['GET'])
+def get_users():
+    connection = get_db_connection()
+    user_rows = connection.execute('SELECT * FROM user').fetchall()
+    users = [tuple(row) for row in user_rows]
+    
+    connection.close
+    print(users)
+    return json.dumps(users)
+
     
 @app.route('/')
 def index():
@@ -14,12 +40,6 @@ def index():
 @app.route('/user_form')
 def show_form():
     return render_template('user_form.html')
-
-@app.route('/add_to_wallet')
-def add():
-    link = generic_pass.create_pass_object()
-    return f'<a href= {link}></a>'
-
 
 @app.route('/user_form_submitted', methods=['POST']) 
 def user_form():
@@ -30,11 +50,56 @@ def user_form():
     company_name = data['company-name']
     ph_number = data['phNumber']
     print(data)
-    link = generic_pass.create_pass_object(fname, lname, company_name, ph_number)
-    print(link)
-   
+    link = generic_pass.create_pass_object(data['firstName'], data['lastName'], data['company'], data['phNumber'])
     return "Form submitted, check you SMS for a link to your pass"
 
+
+@app.route('/users', methods=['GET', 'POST'])
+def show_users():
+    connection = get_db_connection()
+    
+    if request.method == 'POST':
+        
+        # Retrieve User data from static spreadsheet
+        data = request.get_json()
+        print(request.get_json())
+        
+        # Provide link to redirect users to form
+        link = 'http://127.0.0.1:5000/user_form'
+        print(link)
+        
+
+        # Sending email
+        message = Mail(
+            from_email='blake.matheson3@gmail.com',
+            to_emails= data['email'],
+            subject= 'Welcome to Convergint',
+            html_content=f'<strong>Here is the link to your pass: {link}</strong>')
+        
+        # COMMENTINT OUT AS EMAILS ARE GETTING BLOCKED
+        # try:
+        #     sg = SendGridAPIClient(os.environ.get('SEND_GRID_API_KEY'))
+        #     # sg.set_sendgrid_data_residency("eu")
+        #     # uncomment the above line if you are sending mail using a regional EU subuser
+        #     response = sg.send(message)
+        #     print(response.status_code)
+        #     print(response.body)
+        #     print(response.headers)
+        # except Exception as e:
+        #     print(e)
+        return render_template('users.html')
+        
+    return render_template('users.html')
+
+
+@app.route('/sms_reply', methods=['GET', 'POST'])
+def sms_reply():
+    resp = MessagingResponse()
+    print(request.form.get('Body'))
+    resp.message("Thanks for sending that through. Here\'s your link")
+    return str(resp)
+        
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
