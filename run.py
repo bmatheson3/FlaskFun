@@ -55,7 +55,7 @@ def admin_login():
 
     user_row = connection.execute("SELECT username, password FROM admin WHERE username = ?", [username]).fetchone()
     if not user_row:
-        flash("Username does not exist, please try agains")
+        flash("Username does not exist, please try again")
         print("incorrect pw entered")
         return index(True)
 

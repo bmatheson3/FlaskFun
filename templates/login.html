@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
 </head>
 
 
-<body>     
-    <div id="admin-login">
+<body class="d-flex justify-content-center align-items-center min-vh-100">     
+    <div id="admin-login" class="w-25" style="min-width: 300px;">
           <h1>
             Admin Login
         </h1>
@@ -18,26 +18,31 @@
             method="POST"
             action="/login"
         >
-                <label for="username">Username:</label><br>
-                <input type="text" id="username" name="username" required><br>
+             <div class="form-floating mb-3">
+                <input type="text" id="username" name="username" class="form-control" placeholder="Username"/>
+                <label class="form-label" for="username">Username</label>
+            </div>
 
-                <label for="password">Password:</label><br>
-                <input type="text" id="password" name="password" required><br>
+            <div class="form-floating mb-3">
+                <input type="password" id="password" name="password" class="form-control" />
+                <label class="form-label" for="password">Password</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
 
-                <button type="submit" id="admin-submit">Submit</button>
+            
 
                 {% with messages = get_flashed_messages() %}
                     {% if messages %}
-                        <div id="incorrect-message">
+
+                        <div class="alert alert-danger mt-3 mb-3" role="alert">
                             {% for message in messages %}
-                                <p style="color: red">{{ message }}</p>
+                                <p>{{ message }}</p>
                             {% endfor %}
                         </div>
                     {% endif %}
                 {% endwith %}
-
-
         </form>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
     </div>  
 
 </html>
