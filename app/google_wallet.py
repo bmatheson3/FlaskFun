@@ -34,8 +34,6 @@ class GenericPass:
         self.twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
         self.twilio_client = Client(self.twilio_account_sid, self.twilio_auth_token)
         self.auth()
-        print(self.issuerId)
-        print(self.classId)
     
     
     # Authorising user

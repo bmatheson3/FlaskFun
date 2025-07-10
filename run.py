@@ -32,14 +32,15 @@ def get_users():
     users = [tuple(row) for row in user_rows]
     
     connection.close
-    print(users)
     return json.dumps(users)
 
     
 @app.route('/')
-def index():
+def index(incorrect = False):
     if not session.get('logged_in'):
-        return render_template('login.html')
+        print(incorrect)
+        incorrect_str = f'{incorrect}'
+        return render_template('login.html', incorrect=incorrect_str)
     else:
         return render_template('index.html')
 
@@ -51,29 +52,30 @@ def admin_login():
     password = data['password']
     print(username)
     connection = get_db_connection()
+
     user_row = connection.execute("SELECT username, password FROM admin WHERE username = ?", [username]).fetchone()
+    if not user_row:
+        flash("Username does not exist, please try agains")
+        print("incorrect pw entered")
+        return index(True)
+
+
     connection.close()
     if (user_row[1] == password):
         session['logged_in'] = True
         return index()
     else:
-        flash("Password incorrect")
+        flash("Password incorrect, please try again")
         print("incorrect pw entered")
-        return index()
-
-
-
-    
-    
+        return index(True)
+        
 @app.route('/user_form')
 def show_form():
     return render_template('user_form.html')
 
 @app.route('/user_form_submitted', methods=['POST']) 
 def user_form():
-    print('hello')
     data = request.form.to_dict()
-    print(data)
     generic_pass.create_pass_object(data['firstName'], data['lastName'], data['company'], data['phNumber'])
     return "Form submitted, check you SMS for a link to your pass"
 
@@ -84,12 +86,9 @@ def show_users():
         
         # Retrieve User data from static spreadsheet
         data = request.get_json()
-        print(request.get_json())
         
         # Provide link to redirect users to form
         link = 'http://127.0.0.1:5000/user_form'
-        print(link)
-        
 
         # Sending email
         message = Mail(
@@ -117,11 +116,8 @@ def show_users():
 @app.route('/sms_reply', methods=['GET', 'POST'])
 def sms_reply():
     resp = MessagingResponse()
-    print(request.form.get('Body'))
     resp.message("Thanks for sending that through. Here\'s your link")
     return str(resp)
-        
-    
 
 if __name__ == '__main__':
     app.run(debug=True)

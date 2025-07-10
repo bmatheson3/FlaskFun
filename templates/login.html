@@ -8,10 +8,13 @@
 </head>
 
 
-<body>
-    <div>
+<body>     
+    <div id="admin-login">
+          <h1>
+            Admin Login
+        </h1>
         <form 
-            id="login"
+            id="login-form"
             method="POST"
             action="/login"
         >
@@ -21,8 +24,20 @@
                 <label for="password">Password:</label><br>
                 <input type="text" id="password" name="password" required><br>
 
-                <button type="submit">Submit</button>
+                <button type="submit" id="admin-submit">Submit</button>
+
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div id="incorrect-message">
+                            {% for message in messages %}
+                                <p style="color: red">{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+
         </form>
     </div>  
-</body>
+
 </html>
