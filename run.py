@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash, session
 from app.google_wallet import GenericPass
 import os
 import sqlite3
@@ -8,9 +8,12 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from twilio.twiml.messaging_response import MessagingResponse
 from app.init_db import init_db
+from datetime import timedelta
 
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')
+app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=1)
 
 init_db()
 
@@ -35,7 +38,32 @@ def get_users():
     
 @app.route('/')
 def index():
-    return render_template('index.html')
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+        return render_template('index.html')
+
+@app.route('/login', methods=['POST'])
+def admin_login():
+    session.permanent = True
+    data = request.form.to_dict()
+    username = data['username']
+    password = data['password']
+    print(username)
+    connection = get_db_connection()
+    user_row = connection.execute("SELECT username, password FROM admin WHERE username = ?", [username]).fetchone()
+    connection.close()
+    if (user_row[1] == password):
+        session['logged_in'] = True
+        return index()
+    else:
+        flash("Password incorrect")
+        print("incorrect pw entered")
+        return index()
+
+
+
+    
     
 @app.route('/user_form')
 def show_form():
@@ -45,19 +73,13 @@ def show_form():
 def user_form():
     print('hello')
     data = request.form.to_dict()
-    fname = data['fname']
-    lname = data['lname']
-    company_name = data['company-name']
-    ph_number = data['phNumber']
     print(data)
-    link = generic_pass.create_pass_object(data['firstName'], data['lastName'], data['company'], data['phNumber'])
+    generic_pass.create_pass_object(data['firstName'], data['lastName'], data['company'], data['phNumber'])
     return "Form submitted, check you SMS for a link to your pass"
 
 
 @app.route('/users', methods=['GET', 'POST'])
-def show_users():
-    connection = get_db_connection()
-    
+def show_users():   
     if request.method == 'POST':
         
         # Retrieve User data from static spreadsheet
