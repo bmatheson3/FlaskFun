@@ -13,7 +13,6 @@ table {
 
 body {
     position: relative;
-    margin: 1%;
 }
 
 th {
@@ -47,6 +46,32 @@ table tr:last-child td:last-child {
 }
 table tr:last-child td:first-child {
     border-bottom-left-radius: 0.5rem;
+}
+
+.topnav {
+  background-color: #333;
+  overflow: hidden;
+}
+
+
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+.topnav a.active {
+  background-color: #04AA6D;
+  color: white;
 }
 
 /* USER_FORM STYLES */
