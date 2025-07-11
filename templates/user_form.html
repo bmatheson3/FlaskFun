@@ -4,31 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Form</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
 </head>
 
 
-<body>
-    <div>
+<body class="d-flex justify-content-center align-items-center min-vh-100">
+    <div class="w-25">
+        <h1>Fill out you details: </h1>
         <form 
             id="user-info"
             method="POST"
             action="/user_form_submitted"
         >
-                <label for="fname">First name:</label><br>
-                <input type="text" id="fname" name="fname"><br>
+            <div class="form-group mb-3">
+                <label for="fname">First name:</label>
+                <input type="text" id="fname" name="fname" class = "form-control" placeholder="John">
+            </div>
+            <div class="form-group mb-3">
+                <label for="lname">Last name:</label>
+                <input type="text" id="lname" name="lname" class="form-control" placeholder="Doe">
+            </div>
+            <div class="form-group mb-3">
+                <label for="company-name">Company name:</label>
+                <input type="text" id="company-name" name="company-name" class="form-control">
+            </div>
+            <div class="form-group mb-3">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" class="form-control">
+            </div>
+            <div class="form-group mb-3">
+                <label for="phNumber">Phone Number:</label>
+                <input id="phNumber" type="tel" id="phNumber" name="phNumber" class="form-control">
+            </div>
+                <button type="submit" class="btn btn-primary w-100 mb-2">Submit</button>
 
-                <label for="lname">Last name:</label><br>
-                <input type="text" id="lname" name="lname"><br>
-
-                <label for="company-name">Company name:</label><br>
-                <input type="text" id="company-name" name="company-name"><br>
-
-                <label for="phNumber">Phone Number:</label><br>
-                <input id="phNumber" type="tel" id="phNumber" name="phNumber"> <br><br>
-
-                <button type="submit">Submit</button>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="alert alert-danger mt-3 mb-3" role="alert">
+                            {% for message in messages %}
+                                <p>{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
         </form>
     </div>  
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
 </body>
 </html>

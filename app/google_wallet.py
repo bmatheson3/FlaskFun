@@ -3,8 +3,7 @@ import os
 import uuid
 import pyshorteners
 from twilio.rest import Client
-
-
+from twilio.twiml.messaging_response import MessagingResponse
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.service_account import Credentials
@@ -29,21 +28,27 @@ class GenericPass:
     def __init__(self):
         self.key_file_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.issuerId = os.getenv("ISSUER_ID")
-        self.classId = self.issuerId + '.flask_noAI_dblquotes'
+        self.classId = self.issuerId + '.flask_noAI_Blake'
         self.twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
         self.twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
         self.twilio_client = Client(self.twilio_account_sid, self.twilio_auth_token)
+        print(self.issuerId)
         self.auth()
+        
     
     
     # Authorising user
     def auth(self):
+        print("hello auth")
+        print(self.key_file_path)
         self.credentials = Credentials.from_service_account_file(
             self.key_file_path,
             scopes=['https://www.googleapis.com/auth/wallet_object.issuer'])
     
         # creates a Google API Client based on name, version & credentials
         self.wallet_client = build('walletobjects', 'v1', credentials=self.credentials)
+        print(self.wallet_client)
+
         
 
 
@@ -138,14 +143,17 @@ class GenericPass:
                 ]
             }
         }
+        print("trying to create class")
         
         # Check if the class already exists
         try:
+            print(self.classId)
             self.wallet_client.genericclass().get(resourceId=self.classId).execute()
         # If it does not, create it
         except HttpError as e:
             # Checking for any unexpected errors (we expect a 404 in the case that the class does not exist)
             if e.status_code != 404:
+                print("this is the error: ")
                 print(e.error_details)
                 return self.classId
         else:
@@ -247,13 +255,34 @@ class GenericPass:
         print(f'Long URL: https://pay.google.com/gp/v/save/{token}')
         print(f'Short URL: {short_url}')
         
-        
+        return short_url
+    
+    def send_security_question(self, firstName, phNumber, random_security_question):
+   
         message = self.twilio_client.messages.create(
-            body=f"Hi {firstName}, \nAccess your pass here: {short_url}",
+            body=f"Hi {firstName}, \nHere\'s your security question: {random_security_question}, Provide your answer here.",
             from_="+17164527426",
             to=f"{phNumber}",
         )
         
-        print(message.body)
+        return message
         
-        return short_url
+    
+    def send_pass(self, link, firstName, lastName, companyName, phNumber):
+        
+        if not link:
+            link = self.create_pass_object(firstName,lastName,companyName,phNumber)
+
+        resp = MessagingResponse()
+            
+        resp.message = self.twilio_client.messages.create(
+            body=f"Hi {firstName}, \nAccess your pass here: {link}",
+            from_="+17164527426",
+            to=f"{phNumber}",
+        )
+        
+        return str(resp)
+        
+        
+        
+

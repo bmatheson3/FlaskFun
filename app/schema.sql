@@ -4,15 +4,16 @@ DROP TABLE IF EXISTS admin;
 
 CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    company TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    company TEXT,
     email TEXT NOT NULL,
-    ph_number TEXT NOT NULL,
+    ph_number TEXT,
     email_sent BOOLEAN DEFAULT 'false',
     sms_sent BOOLEAN DEFAULT 'false',
     security_question TEXT,
-    security_answer TEXT
+    security_answer TEXT,
+    google_wallet_link TEXT
 );
 
 CREATE TABLE admin (
