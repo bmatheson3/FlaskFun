@@ -13,7 +13,6 @@ CREATE TABLE user (
     sms_sent BOOLEAN DEFAULT 'false',
     security_question TEXT,
     security_answer TEXT,
-    google_wallet_link TEXT
 );
 
 CREATE TABLE admin (

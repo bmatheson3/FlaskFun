@@ -37,7 +37,7 @@ def get_users():
     users = [tuple(row) for row in user_rows]
     print(users)
     
-    connection.commmit()
+    connection.commit()
     connection.close
     return json.dumps(users)
 
@@ -106,12 +106,17 @@ def user_form():
     
     print(ph_number)
     connection.commit()
-    connection.close()
+   
     
 
     generic_pass.send_security_question(first_name, ph_number, random_question)
 
-    return "Form submitted, check your SMS for a link to your pass"
+    # Updating user's security question
+    connection.execute('UPDATE user SET security_question=? WHERE email=?', [random_question,email])
+    connection.commit()
+    connection.close()
+
+    return "Form submitted, check your SMS!"
 
 
 @app.route('/users', methods=['GET', 'POST'])
@@ -122,14 +127,14 @@ def show_users():
         data = request.get_json()
         
         # Provide link to redirect users to form
-        link = 'http://127.0.0.1:5000/user_form'
+        form_link = 'http://127.0.0.1:5000/user_form'
 
         # Sending email
         message = Mail(
             from_email='blake.matheson3@gmail.com',
             to_emails= data['email'],
             subject= 'Welcome to Convergint',
-            html_content=f'<strong>Here is the link to your pass: {link}</strong>')
+            html_content=f'<strong>Here is the link to your pass: {form_link}</strong>')
         
         # COMMENTINT OUT AS EMAILS ARE GETTING BLOCKED
         # try:
@@ -155,22 +160,30 @@ def sms_reply():
 
     connection = get_db_connection()    
     user_row = connection.execute('SELECT * FROM user WHERE ph_number = ?', [user_ph_number]).fetchone()
-    link = user_row[10]
     firstName = user_row[1]
     lastName = user_row[2]
     companyName = user_row[3]
     sms_sent = user_row[7]
     existing_security_answer = user_row[9]
     
-    # if not security_answer:
-    security_answer = request.values.get('Body', None)
-    connection.execute('UPDATE user SET security_answer=? WHERE ph_number = ?', [security_answer, user_ph_number])
-    generic_pass.send_pass(link,firstName,lastName,companyName, user_ph_number)
+    if not existing_security_answer:
+        security_answer = request.values.get('Body', None)
+        connection.execute('UPDATE user SET security_answer=? WHERE ph_number = ?', [security_answer, user_ph_number])
+        link = generic_pass.send_pass(link,firstName,lastName,companyName, user_ph_number)
+        connection.execute('UPDATE user SET google_wallet_link=? where ph_number =?',[link, user_ph_number])
+        connection.execute('UPDATE user SET sms_sent=true WHERE ph_number=?', [user_ph_number])    
+        connection.commit()
+        connection.close()
+    
+    return "Security answer received"
+
+@app.route('/reset_all',methods=['POST'])
+def reset():
+    connection = get_db_connection() 
+    connection.execute('UPDATE user SET first_name=NULL last_name=NULL company=NULL ph_number=NULL security_question=NULL security_answer=NULL email_sent=false sms_sent=false google_wallet_link=false WHERE email=blake.matheson@convergint.com')
+
     connection.commit()
     connection.close()
-    
-    return "User reply with security answer received"
-
 
 if __name__ == '__main__':
     app.run(debug=True)

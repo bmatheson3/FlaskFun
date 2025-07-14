@@ -268,10 +268,10 @@ class GenericPass:
         return message
         
     
-    def send_pass(self, link, firstName, lastName, companyName, phNumber):
+    def send_pass(self, firstName, lastName, companyName, phNumber):
         
-        if not link:
-            link = self.create_pass_object(firstName,lastName,companyName,phNumber)
+
+        link = self.create_pass_object(firstName,lastName,companyName,phNumber)
 
         resp = MessagingResponse()
             
@@ -281,7 +281,7 @@ class GenericPass:
             to=f"{phNumber}",
         )
         
-        return str(resp)
+        return link
         
         
         
