@@ -1,8 +1,7 @@
-from flask import Flask, render_template, request, flash, session
+from flask import Flask, render_template, request, flash, session, jsonify
 from app.google_wallet import GenericPass
 import os
 import sqlite3
-import jsonify
 import json
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -10,11 +9,16 @@ from twilio.twiml.messaging_response import MessagingResponse
 from app.init_db import init_db
 from datetime import timedelta
 import random
+from flask_cors import CORS
+import bcrypt
 
 
 app = Flask(__name__)
+CORS(app, supports_credentials=True, origins=['http://localhost:5173'])
 app.secret_key = os.getenv('SECRET_KEY')
 app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=5)
+
+
 
 with open('questions.json', 'r') as f:
     questions = json.load(f)
@@ -38,41 +42,47 @@ def get_users():
     print(users)
     
     connection.commit()
-    connection.close
+    connection.close()
     return json.dumps(users)
 
     
 @app.route('/')
 def index():
-    if not session.get('logged_in'):
-        return render_template('login.html')
-    else:
-        return render_template('index.html')
+    return
 
 @app.route('/login', methods=['POST'])
 def admin_login():
     session.permanent = True
-    data = request.form.to_dict()
-    username = data['username']
-    password = data['password']
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form.to_dict()
+
+    username = data.get('username')
+    password = data.get('password')
     print(username)
     connection = get_db_connection()
 
     user_row = connection.execute("SELECT username, password FROM admin WHERE username = ?", [username]).fetchone()
     if not user_row:
-        flash("Username does not exist, please try again")
+        print("user not found")
         print("incorrect pw entered")
-        return index(True)
+        return jsonify({'success': False})
+    
+    stored_password = str(user_row[1])
+    print(f"Stored password in DB: '{stored_password}'")
+    print(f"Length: {len(stored_password)}")
+    print(f"Starts with $2b$: {stored_password.startswith('$2b$')}")
 
 
     connection.close()
-    if (user_row[1] == password):
+    if (bcrypt.checkpw(password.encode('utf-8'), str(user_row[1]).encode('utf-8'))):
         session['logged_in'] = True
-        return index()
+        return jsonify({'success': True})
     else:
-        flash("Password incorrect, please try again")
         print("incorrect pw entered")
-        return index()
+        session['logged_in'] = False
+        return jsonify({'success': False})
         
 @app.route('/user_form')
 def show_form():
@@ -100,8 +110,8 @@ def user_form():
         return show_form()
     
     connection.execute(
-        'UPDATE user SET first_name=?, last_name=?, company=?, ph_number=? WHERE email=?', 
-        [first_name, last_name, company_name, ph_number, email]
+        'UPDATE user SET company=?, ph_number=? WHERE email=?', 
+        [company_name, ph_number, email]
     )
     
     print(ph_number)
@@ -163,7 +173,7 @@ def sms_reply():
     firstName = user_row[1]
     lastName = user_row[2]
     companyName = user_row[3]
-    sms_sent = user_row[7]
+    link_sent = user_row[7]
     existing_security_answer = user_row[9]
     
     if not existing_security_answer:
@@ -171,7 +181,7 @@ def sms_reply():
         connection.execute('UPDATE user SET security_answer=? WHERE ph_number = ?', [security_answer, user_ph_number])
         link = generic_pass.send_pass(link,firstName,lastName,companyName, user_ph_number)
         connection.execute('UPDATE user SET google_wallet_link=? where ph_number =?',[link, user_ph_number])
-        connection.execute('UPDATE user SET sms_sent=true WHERE ph_number=?', [user_ph_number])    
+        connection.execute('UPDATE user SET link_sent=true WHERE ph_number=?', [user_ph_number])    
         connection.commit()
         connection.close()
     
@@ -180,10 +190,61 @@ def sms_reply():
 @app.route('/reset_all',methods=['POST'])
 def reset():
     connection = get_db_connection() 
-    connection.execute('UPDATE user SET first_name=NULL last_name=NULL company=NULL ph_number=NULL security_question=NULL security_answer=NULL email_sent=false sms_sent=false google_wallet_link=false WHERE email=blake.matheson@convergint.com')
+    connection.execute('UPDATE user SET first_name=NULL last_name=NULL company=NULL ph_number=NULL security_question=NULL security_answer=NULL email_sent=false link_sent=false google_wallet_link=false WHERE email=blake.matheson@convergint.com')
 
     connection.commit()
     connection.close()
+
+@app.route('/get_rsvp_emails_sent', methods=['GET'])
+def rsvp_emails_sent():
+    connection = get_db_connection() 
+    rsvp_emails_sent = connection.execute('SELECT rsvp_email_sent FROM user').fetchall()
+
+    values = [row['rsvp_email_sent'] for row in rsvp_emails_sent]
+    counter = 0
+    for value in values:
+        if value == 'true':
+            counter += 1
+            
+    return str(counter)
+
+@app.route('/get_welcome_emails_sent', methods=['GET'])
+def welcome_emails_sent():
+    connection = get_db_connection() 
+    welcome_emails_sent = connection.execute('SELECT welcome_email_sent FROM user').fetchall()
+
+    values = [row['welcome_email_sent'] for row in welcome_emails_sent]
+    counter = 0
+    for value in values:
+        if value == 'true':
+            counter += 1
+            
+    return str(counter)
+
+@app.route('/get_security_sms_sent', methods=['GET'])
+def security_questions_sent():
+    connection = get_db_connection() 
+    security_questions_sent = connection.execute('SELECT security_question FROM user').fetchall()
+
+    values = [row['security_question'] for row in security_questions_sent]
+    counter = 0
+    for value in values:
+        if value:
+            counter += 1
+    return str(counter)
+
+# Only checks via sms for now as email sending does not work
+@app.route('/get_links_sent', methods=['GET'])
+def links_sent():
+    connection = get_db_connection() 
+    links_sent = connection.execute('SELECT link_sent FROM user').fetchall()
+
+    values = [row['link_sent'] for row in links_sent]
+    counter = 0
+    for value in values:
+        if value == 'true' :
+            counter += 1
+    return str(counter)
 
 if __name__ == '__main__':
     app.run(debug=True)

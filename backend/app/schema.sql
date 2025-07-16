@@ -9,10 +9,11 @@ CREATE TABLE user (
     company TEXT,
     email TEXT NOT NULL,
     ph_number TEXT,
-    email_sent BOOLEAN DEFAULT 'false',
-    sms_sent BOOLEAN DEFAULT 'false',
+    rsvp_email_sent BOOLEAN DEFAULT 'false',
+    welcome_email_sent BOOLEAN DEFAULT 'false',
+    link_sent BOOLEAN DEFAULT 'false',
     security_question TEXT,
-    security_answer TEXT,
+    security_answer TEXT
 );
 
 CREATE TABLE admin (
