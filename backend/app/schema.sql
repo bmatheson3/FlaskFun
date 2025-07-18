@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS admin;
+DROP TABLE IF EXISTS email_template;
 
 
 CREATE TABLE user (
@@ -19,5 +20,15 @@ CREATE TABLE user (
 CREATE TABLE admin (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    email_template_id INTEGER,
+    
+    FOREIGN KEY (email_template_id) REFERENCES email_template(id)
+);
+
+CREATE TABLE email_template (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT,
+    banner_url TEXT,
+    content TEXT
 );

@@ -19,7 +19,7 @@
         },
         {
         title: "Email template",
-        url: "#",
+        url: "/email_template",
         icon: UserIcon,
         }
     ];

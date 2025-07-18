@@ -11,6 +11,7 @@
     let phNumber = '';  
     let email = '';
     let company = '';
+    let formSubmitted = false;
 
     const handleSubmit = async () => {
         try {
@@ -32,7 +33,7 @@
             console.log("Response:", data);
             
             if (data.success) {
-                goto('/dashboard'); // need to change
+                formSubmitted = true;
             } else {
                 errorMessage = true;
             }
@@ -43,7 +44,7 @@
     }
 </script>
  
-
+{#if formSubmitted}
 <div class="flex justify-center w-full h-screen items-center bg-[#001430]">
     <Card.Root class="justify-center w-full max-w-sm h-200">
         <Card.Header>
@@ -86,3 +87,21 @@
         </Card.Footer>
     </Card.Root>
 </div>
+{:else}
+<div class="flex justify-center w-full h-screen items-center bg-[#001430]">
+    <Card.Root class="justify-center w-full max-w-sm h-200">
+        <Card.Header>
+            <img class="mb-3 w-40 h-auto" alt="company" src={convergintLogo} />
+            {#if errorMessage}
+                <div>
+                    <p class="text-red-500 text-center">Please enter the email that you're invitation was sent to</p>
+                </div>
+            {/if}
+            <Card.Title>Thank You</Card.Title>
+                <Card.Description
+                    >Please check you SMS for a link to your Pass.</Card.Description
+                >
+        </Card.Header>
+    </Card.Root>
+</div>
+{/if}

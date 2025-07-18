@@ -14,12 +14,15 @@ def init_db():
         
     cursor = connection.cursor()
 
-    cursor.execute("INSERT INTO user (first_name, last_name, email) VALUES ('Blake','Matheson','blake.matheson@convergint.com')",)
+    cursor.execute("INSERT INTO user (first_name, last_name, email) VALUES ('Blake','Matheson','blake.matheson3@gmail.com')",)
 
-    cursor.execute("INSERT INTO user (first_name, last_name, email) VALUES ('Anna','Ly','anna.ly@convergint.com')",)
+    cursor.execute("INSERT INTO user (first_name, last_name, email) VALUES ('Anna','Ly','annavyly@gmail.com')",)
 
     cursor.execute("INSERT INTO admin (username, password) VALUES (?, ?)",
                 ('admin', hashed_password_str)
                 )
+    
+    cursor.execute("INSERT INTO email_template (id, subject, content) VALUES (1, 'Welcome Email', 'Hello. Welcome to our event')",)
+    
     connection.commit()
     connection.close()

@@ -11,7 +11,9 @@
   const fetchUsers = async () => {
       try{
           console.log("fetching users");
-          const response = await fetch('http://127.0.0.1:5000/get_users');
+          const response = await fetch('http://127.0.0.1:5000/get_users', {
+            credentials: 'include',
+          });
           const data = await response.json();
           return data;
       } catch(error){
@@ -31,7 +33,8 @@
         try {
             const response = await fetch('http://127.0.0.1:5000/upload', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'include'
             });
             
             if (response.ok) {

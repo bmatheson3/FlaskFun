@@ -46,7 +46,9 @@ let passesSent = '';
   const fetchRsvp = async (): Promise<any> => {
       try{
           console.log("fetching rvsp count");
-          const response = await fetch('http://127.0.0.1:5000/get_rsvp_emails_sent');
+          const response = await fetch('http://127.0.0.1:5000/get_rsvp_emails_sent', {
+                credentials: 'include',
+          });
           const data = await response.json();
           console.log(data);
           return data;
@@ -57,7 +59,9 @@ let passesSent = '';
   const fetchWelcome = async (): Promise<any> => {
       try{
           console.log("fetching welcome count");
-          const response = await fetch('http://127.0.0.1:5000/get_welcome_emails_sent');
+          const response = await fetch('http://127.0.0.1:5000/get_welcome_emails_sent', {
+            credentials: 'include',
+          });
           const data = await response.json();
           console.log(data);
           return data;
@@ -68,7 +72,9 @@ let passesSent = '';
   const fetchQuestion = async (): Promise<any> => {
       try{
           console.log("fetching rvsp count");
-          const response = await fetch('http://127.0.0.1:5000/get_security_sms_sent');
+          const response = await fetch('http://127.0.0.1:5000/get_security_sms_sent', {
+                credentials: 'include',
+          });
           const data = await response.json();
           console.log(data);
           return data;
@@ -79,7 +85,9 @@ let passesSent = '';
   const fetchPassSent = async (): Promise<any> => {
       try{
           console.log("fetching pass count");
-          const response = await fetch('http://127.0.0.1:5000/get_links_sent');
+          const response = await fetch('http://127.0.0.1:5000/get_links_sent', {
+            credentials: 'include',
+          });
           const data = await response.json();
           console.log(data);
           return data;
@@ -103,9 +111,9 @@ let passesSent = '';
 
 
 
-<head>
+<svelte:head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
+</svelte:head>
 
 
 <div class="m-10">
