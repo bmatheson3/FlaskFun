@@ -11,7 +11,7 @@ from datetime import timedelta
 import random
 from flask_cors import CORS
 import bcrypt
-
+import pandas as pd
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=['http://localhost:5173'])
@@ -50,6 +50,41 @@ def get_users():
 def index():
     return
 
+@app.route('/upload', methods=['GET','POST'])
+def upload_files():
+    print(request.files)
+    if 'fileToUpload' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    
+    file = request.files['fileToUpload']
+    print(file)
+
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file: 
+        try:
+            dataFrame = pd.read_excel(file)
+            data = dataFrame.to_dict(orient='records')
+            print(data)
+            connection = get_db_connection()
+            for item in data:
+                first_name = item['First Name']
+                last_name = item['Last Name']
+                email = item['Email']
+                print(first_name,last_name,email)
+                connection.execute("INSERT INTO user (first_name, last_name, email) VALUES (?,?,?)",[first_name,last_name,email])
+                print(f'{first_name} added to db')
+
+            connection.commit()
+            connection.close()
+            return jsonify({'message': 'File uploaded successfully', 'data': data}), 200
+        except Exception as e:
+            return jsonify({'Error occured:{str(e)}'}), 500
+    else:
+        return jsonify({'Error': 'File type not allowed'}), 400
+
+
 @app.route('/login', methods=['POST'])
 def admin_login():
     session.permanent = True
@@ -60,22 +95,16 @@ def admin_login():
 
     username = data.get('username')
     password = data.get('password')
-    print(username)
     connection = get_db_connection()
 
     user_row = connection.execute("SELECT username, password FROM admin WHERE username = ?", [username]).fetchone()
+    connection.close()
     if not user_row:
         print("user not found")
         print("incorrect pw entered")
+        session['logged_in'] = False
         return jsonify({'success': False})
     
-    stored_password = str(user_row[1])
-    print(f"Stored password in DB: '{stored_password}'")
-    print(f"Length: {len(stored_password)}")
-    print(f"Starts with $2b$: {stored_password.startswith('$2b$')}")
-
-
-    connection.close()
     if (bcrypt.checkpw(password.encode('utf-8'), str(user_row[1]).encode('utf-8'))):
         session['logged_in'] = True
         return jsonify({'success': True})
@@ -84,20 +113,20 @@ def admin_login():
         session['logged_in'] = False
         return jsonify({'success': False})
         
-@app.route('/user_form')
-def show_form():
-    return render_template('user_form.html')
 
-@app.route('/user_form_submitted', methods=['POST']) 
+@app.route('/user_form', methods=['POST']) 
 def user_form():
-    data = request.form.to_dict()
-    first_name = data['fname']
-    last_name = data['lname']
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form.to_dict()
+        
+    print(data)
+    first_name = data['firstName']
     email = data['email']
-    company_name = data['company-name']
+    company_name = data['company']
     ph_number = data['phNumber']
     random_question = random.choice(questions['security_questions'])
-
 
     # saving info to db
     connection = get_db_connection()
@@ -106,8 +135,8 @@ def user_form():
     print(email)
     if connection.execute('SELECT * FROM user WHERE email=?', [email]).fetchone() is None:
         print("Wrong email")
-        flash("Please enter details with email that has provided you this link")
-        return show_form()
+        # display error 
+        return jsonify({"Error: Incorrect Email"}), 400
     
     connection.execute(
         'UPDATE user SET company=?, ph_number=? WHERE email=?', 
@@ -116,8 +145,6 @@ def user_form():
     
     print(ph_number)
     connection.commit()
-   
-    
 
     generic_pass.send_security_question(first_name, ph_number, random_question)
 
@@ -126,7 +153,7 @@ def user_form():
     connection.commit()
     connection.close()
 
-    return "Form submitted, check your SMS!"
+    return jsonify({'success': True})
 
 
 @app.route('/users', methods=['GET', 'POST'])
@@ -165,8 +192,11 @@ def show_users():
 @app.route('/sms_reply', methods=['GET', 'POST'])
 def sms_reply():
     # resp = MessagingResponse()
+    print("SMS recieved")
     
     user_ph_number = request.form['From']
+    print(user_ph_number)
+    
 
     connection = get_db_connection()    
     user_row = connection.execute('SELECT * FROM user WHERE ph_number = ?', [user_ph_number]).fetchone()
@@ -174,14 +204,14 @@ def sms_reply():
     lastName = user_row[2]
     companyName = user_row[3]
     link_sent = user_row[7]
-    existing_security_answer = user_row[9]
+    existing_security_answer = user_row[10]
+    print(existing_security_answer)
     
     if not existing_security_answer:
         security_answer = request.values.get('Body', None)
         connection.execute('UPDATE user SET security_answer=? WHERE ph_number = ?', [security_answer, user_ph_number])
-        link = generic_pass.send_pass(link,firstName,lastName,companyName, user_ph_number)
-        connection.execute('UPDATE user SET google_wallet_link=? where ph_number =?',[link, user_ph_number])
-        connection.execute('UPDATE user SET link_sent=true WHERE ph_number=?', [user_ph_number])    
+        link = generic_pass.send_pass(firstName,lastName,companyName, user_ph_number)
+        connection.execute('UPDATE user SET link_sent=true where ph_number =?',[user_ph_number])  
         connection.commit()
         connection.close()
     

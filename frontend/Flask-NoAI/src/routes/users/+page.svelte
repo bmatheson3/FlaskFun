@@ -3,22 +3,10 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import convergintLogo from '$lib/assets/convergint-logo.webp';
-
-  type User = {
-    id: number;
-    first_name: string;
-    last_name: string;
-    company: string;
-    email: string;
-    ph_number: string;
-    email_sent: boolean;
-    link_sent: boolean;
-    security_question: string;
-    security_answer: string;
-  }
+  import { Input } from '$lib/components/ui/input/index.js';
 
   let loading = true;
-  let usersArr: any[][] = [];
+  let usersArr: any[][] = $state([]);
 
   const fetchUsers = async () => {
       try{
@@ -31,7 +19,33 @@
       }
   }
 
-  
+  let files: FileList | undefined = $state();
+    
+    const handleSubmit = async (event: Event) => {
+        event.preventDefault();
+        if (!files || files.length === 0) return;
+        
+        const formData = new FormData();
+        formData.append('fileToUpload', files[0]);
+        
+        try {
+            const response = await fetch('http://127.0.0.1:5000/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                console.log('Upload successful!');
+            } else {
+                console.error('Upload failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+      
+      usersArr = await fetchUsers()
+    };
+
 
   onMount(async () => {
     loading = true;
@@ -41,9 +55,9 @@
  
 </script>
 
-<head>
+<svelte:head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
+</svelte:head>
 
 
 <div class="m-10 flex-row">
@@ -77,4 +91,17 @@
       {/each}
     </tbody>
   </table>
+  <div class="grid justify-items-center justify-center mt-8">
+    <h1>Upload a file to send out invites!</h1>
+        <form onsubmit={handleSubmit} class="grid justify-items-center justify-center">
+            <Input
+              type="file"
+              bind:files
+              accept=".xlsx, .xls"
+              required
+              class="mt-5"
+            />
+          <Button type="submit" class="mt-4 convergint-bg">Upload</Button>
+        </form>
+  </div>
 </div>
