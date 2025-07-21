@@ -46,7 +46,7 @@ let passesSent = '';
   const fetchRsvp = async (): Promise<any> => {
       try{
           console.log("fetching rvsp count");
-          const response = await fetch('http://127.0.0.1:5000/get_rsvp_emails_sent', {
+          const response = await fetch('http://localhost:5000/get_rsvp_emails_sent', {
                 credentials: 'include',
           });
           const data = await response.json();
@@ -59,7 +59,7 @@ let passesSent = '';
   const fetchWelcome = async (): Promise<any> => {
       try{
           console.log("fetching welcome count");
-          const response = await fetch('http://127.0.0.1:5000/get_welcome_emails_sent', {
+          const response = await fetch('http://localhost:5000/get_welcome_emails_sent', {
             credentials: 'include',
           });
           const data = await response.json();
@@ -72,7 +72,7 @@ let passesSent = '';
   const fetchQuestion = async (): Promise<any> => {
       try{
           console.log("fetching rvsp count");
-          const response = await fetch('http://127.0.0.1:5000/get_security_sms_sent', {
+          const response = await fetch('http://localhost:5000/get_security_sms_sent', {
                 credentials: 'include',
           });
           const data = await response.json();
@@ -85,7 +85,7 @@ let passesSent = '';
   const fetchPassSent = async (): Promise<any> => {
       try{
           console.log("fetching pass count");
-          const response = await fetch('http://127.0.0.1:5000/get_links_sent', {
+          const response = await fetch('http://localhost:5000/get_links_sent', {
             credentials: 'include',
           });
           const data = await response.json();
@@ -125,7 +125,7 @@ let passesSent = '';
                 <CardTitle class=" mt-3 mb-2 text-3xl">RSVP Emails</CardTitle>
                 <CardTitle class="text-8xl">{rsvpsSent}</CardTitle>
                 <CardDescription class="text-xl">emails sent</CardDescription>
-                <div class="h-">
+                <div class="dashboard-icon">
                     <img src={calendar} alt='Calendar logo'>
                 </div>
                 

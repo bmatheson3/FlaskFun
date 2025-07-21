@@ -123,3 +123,9 @@
 .convergint-bg {
   background-color: oklch(0.2845 0.0652 251.84);
 }
+
+.dashboard-icon {
+  width: 80%;
+  height: 80%;
+  background-color: 'red';
+}

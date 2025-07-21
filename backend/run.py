@@ -16,15 +16,16 @@ import resend
 
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=['http://localhost:5173'], 
+CORS(app, supports_credentials=True, origins=['http://localhost:5173', 'http://127.0.0.1:5173'], 
      allow_headers=['Content-Type', 'Authorization'],
      expose_headers=['Set-Cookie'],
-     allow_credentials=True)
+)
 app.secret_key = os.getenv('SECRET_KEY')
-app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=5)
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=20)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+
 
 resend.api_key = os.environ["RESEND_API_KEY"]
 print(f"Secret key: {app.secret_key}")  # Add this line to see if it's None
@@ -84,17 +85,25 @@ def upload_files():
                 last_name = item['Last Name']
                 email = item['Email']
                 print(first_name,last_name,email)
-                connection.execute("INSERT INTO user (first_name, last_name, email) VALUES (?,?,?)",[first_name,last_name,email])
+                admin_id = connection.execute("SELECT id FROM admin WHERE username = ?", [session['name']]).fetchone()
+                print(admin_id)
+                print(admin_id[0])
+                connection.execute("INSERT INTO user (first_name, last_name, email, admin_id) VALUES (?,?,?,?)",[first_name,last_name,email,admin_id[0]])
                 print(f'{first_name} added to db')
+                print(email)
                 
                 params: resend.Emails.SendParams = {
                     "from": "Acme <onboarding@resend.dev>",
                     "to": email,
-                    "subject": "hello world",
+                    "subject": "RSVP Form",
                     "html": "<p>http://localhost:5173/user_form</p>",
                 }
+                
+                connection.execute("UPDATE user SET rsvp_email_sent=true WHERE email=?", [email])
 
+                print(f"Sending email to: {email}")
                 r = resend.Emails.send(params)
+                print(f"Email sent successfully: {r}")
 
             connection.commit()
             connection.close()
@@ -123,11 +132,14 @@ def admin_login():
         print("user not found")
         print("incorrect pw entered")
         session['logged_in'] = False
+        session.modified = True
         return jsonify({'success': False})
     
     if (bcrypt.checkpw(password.encode('utf-8'), str(user_row[1]).encode('utf-8'))):
         session['logged_in'] = True
         session['name'] = username
+        session.modified = True
+        
         print("=== LOGIN SUCCESS ===")
         print(f"Set session name to: {username}")
         print(f"Full session after login: {dict(session)}")
@@ -136,6 +148,7 @@ def admin_login():
     else:
         print("incorrect pw entered")
         session['logged_in'] = False
+        session.modified = True
         return jsonify({'success': False})
         
 
@@ -171,12 +184,39 @@ def user_form():
     print(ph_number)
     connection.commit()
 
+    # Step 1: Get admin_id
+    admin_result = connection.execute('SELECT admin_id FROM user WHERE ph_number = ?', [ph_number]).fetchone()
+    if not admin_result:
+        print("No user found with this phone number")
+        return
+
+    admin_id = admin_result[0]
+    print(f"Admin ID: {admin_id}")
+
+    # Step 2: Get email_template_id
+    template_result = connection.execute('SELECT email_template_id FROM admin WHERE id = ?', [admin_id]).fetchone()
+    if not template_result:
+        print("No admin found or no template assigned")
+        return
+
+    email_template_id = template_result[0]
+    print(f"Template ID: {email_template_id}")
+
+    # Step 3: Get all template data at once
+    template_data = connection.execute('SELECT subject, content, banner_url FROM email_template WHERE id = ?', [email_template_id]).fetchone()
+    if template_data:
+        subject, content, banner_url = template_data
+        print(f"Subject: {subject}, Content: {content}, Banner: {banner_url}")
+    else:
+        print("Template not found")
+
     params: resend.Emails.SendParams = {
         "from": "Acme <onboarding@resend.dev>",
         "to": email,
-        "subject": "Welcome Email",
-        "html": f"<p>Welcome to {company_name}'s Event </p>",
+        "subject": subject,
+        "html": f"<img class=\"\" src=\"{banner_url}\" alt=\"banner image url\"/><p>{content}</p>",
     }
+    connection.execute('UPDATE user SET welcome_email_sent=true WHERE ph_number=?', [ph_number])
 
     r = resend.Emails.send(params)
 
@@ -207,23 +247,6 @@ def show_users():
             subject= 'Welcome to Convergint',
             html_content=f'<strong>Here is the link to your pass: {form_link}</strong>')
 
-
-    
-
-
-
-        
-        # COMMENTINT OUT AS EMAILS ARE GETTING BLOCKED
-        # try:
-        #     sg = SendGridAPIClient(os.environ.get('SEND_GRID_API_KEY'))
-        #     # sg.set_sendgrid_data_residency("eu")
-        #     # uncomment the above line if you are sending mail using a regional EU subuser
-        #     response = sg.send(message)
-        #     print(response.status_code)
-        #     print(response.body)
-        #     print(response.headers)
-        # except Exception as e:
-        #     print(e)
         return render_template('users.html')
         
     return render_template('users.html')
@@ -273,7 +296,7 @@ def rsvp_emails_sent():
     values = [row['rsvp_email_sent'] for row in rsvp_emails_sent]
     counter = 0
     for value in values:
-        if value == 'true':
+        if value == 1:
             counter += 1
             
     return str(counter)
@@ -286,7 +309,8 @@ def welcome_emails_sent():
     values = [row['welcome_email_sent'] for row in welcome_emails_sent]
     counter = 0
     for value in values:
-        if value == 'true':
+        print(values)
+        if value==1:
             counter += 1
             
     return str(counter)
@@ -312,7 +336,7 @@ def links_sent():
     values = [row['link_sent'] for row in links_sent]
     counter = 0
     for value in values:
-        if value == 'true' :
+        if value == 1:
             counter += 1
     return str(counter)
 
@@ -335,7 +359,7 @@ def email_template():
         
         connection = get_db_connection()
         try:
-            banner_url = data.get('bannerUrl')
+            banner_url = data.get('banner_url')
             subject = data.get('subject')
             content = data.get('content')
             
@@ -356,14 +380,10 @@ def email_template():
 
     else:  # GET request
         connection = get_db_connection()
-        print("=== SESSION DEBUG ===")
-        print(f"Full session: {dict(session)}")
-        print(f"Session name: {session.get('name')}")
-        print(f"Session logged_in: {session.get('logged_in')}")
-        print(f"Session keys: {list(session.keys())}")
-        print("==================")
         try:
             existing_template_id = connection.execute('SELECT email_template_id FROM admin WHERE username = ?', [session['name']]).fetchone()
+            print(existing_template_id)
+            print(existing_template_id[0])
             if existing_template_id and existing_template_id[0]:
                 template_id = existing_template_id[0]
                 template_data = connection.execute('SELECT * FROM email_template WHERE id = ?', [template_id]).fetchone()
@@ -381,8 +401,6 @@ def email_template():
         finally:
             connection.close()
         
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -14,7 +14,10 @@ CREATE TABLE user (
     welcome_email_sent BOOLEAN DEFAULT 'false',
     link_sent BOOLEAN DEFAULT 'false',
     security_question TEXT,
-    security_answer TEXT
+    security_answer TEXT,
+    admin_id INT,
+    
+    FOREIGN KEY (admin_id) REFERENCES admin(id)
 );
 
 CREATE TABLE admin (

@@ -48,6 +48,7 @@
                     const response = await fetch('/get_users', {
                         method: 'GET',
                         headers: {'Content-Type': 'application/json'},
+                        credentials: 'include'
                     });
                     const result = await response.json();
                     return result;
