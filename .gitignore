@@ -1,7 +1,0 @@
-.env
-.env.*
-*.db
-*.sqlite
-*.sqlite3
-database.db
-__pycache__
